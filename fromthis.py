@@ -50,38 +50,49 @@ def fromthis(is_match, input_stream, exclude_match, max_count):
     global exit_code
     match_count = 0
     for line in input_stream:
-        if is_match(line):
-            match_count += 1
-            exit_code = match_count
-            if match_count == max_count:
-                exit_code = 0
-                if not exclude_match:
-                    yield line
-                break
+        if is_match(line, max_count):
+            if not exclude_match:
+                yield line
+            break
     for line in input_stream:
         yield line
 
 
+def count_matches(match_function):
+    """Return True only if the required number of matches is reached."""
+    def counter(line, max_count, persistent={'count': 0}):
+        result = match_function(line)
+        if result:
+            persistent['count'] += 1
+        return True if persistent['count'] == max_count else False
+    return counter
+
+
 def pattern_matcher(pattern, fixed_string, ignore_case):
     regex_flags = re.IGNORECASE if ignore_case else 0
+
+    @count_matches
     def match_regex(line, regex=re.compile(pattern, regex_flags)):
         return bool(regex.search(line))
+
+    @count_matches
     def match_fixed_string_ignore_case(line, pattern=pattern):
         return pattern.upper() in line.upper()
+
+    @count_matches
     def match_fixed_string_match_case(line, pattern=pattern):
         return pattern in line
-    if not fixed_string:
-        function = match_regex
-    elif ignore_case:
-        function = match_fixed_string_ignore_case
-    else:
-        function = match_fixed_string_match_case
-    return function
 
+    if not fixed_string:
+        match_function = match_regex
+    elif ignore_case:
+        match_function = match_fixed_string_ignore_case
+    else:
+        match_function = match_fixed_string_match_case
+    return match_function
 
 def text_file_input(filenames):
     """Generate input from files or standard input."""
-    global file_handle
     if filenames:
         file_handles = open_files(filenames)
     else:
@@ -93,7 +104,6 @@ def text_file_input(filenames):
 
 def open_files(filenames):
     """Return a filehandle for each provided filename."""
-    global filename
     for filename in filenames:
         file_open = file_opener(filename)
         with file_open(filename, 'rt') as filehandle:
