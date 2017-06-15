@@ -10,6 +10,8 @@ from __future__ import division
 from __future__ import print_function
 
 import click
+import gzip
+import bz2
 import re
 import signal
 import sys
@@ -18,18 +20,22 @@ import sys
 @click.command()
 @click.argument('pattern')
 @click.argument('filenames', nargs=-1,
-                    type=click.Path(exists=True, dir_okay=False))
-@click.option('-F', '--fixed-string', default=False, is_flag=True,
+                type=click.Path(exists=True, dir_okay=False))
+@click.option('-F', '--fixed-string',
+                    default=False, is_flag=True,
                     help='fixed string match (default is regex)')
-@click.option('-i', '--ignore-case', default=False, is_flag=True,
+@click.option('-i', '--ignore-case',
+                    default=False, is_flag=True,
                     help='ignore case distinctions')
-@click.option('-m', '--max-count', default=1,
+@click.option('-m', '--max-count',
+                    default=1,
                     help='start after number of matches.')
-@click.option('-n', '--line-number', default=False, is_flag=True,
+@click.option('-n', '--line-number',
+                    default=False, is_flag=True,
                     help='print line number with output lines.')
-@click.option('-x', '--exclude-match', default=False, is_flag=True,
+@click.option('-x', '--exclude-match',
+                    default=False, is_flag=True,
                     help='exclude matching line.')
-
 def main(pattern, filenames, fixed_string, ignore_case,
          exclude_match, line_number, max_count):
     """Display input starting with a line matching PATTERN."""
@@ -48,7 +54,6 @@ def main(pattern, filenames, fixed_string, ignore_case,
 def fromthis(is_match, input_stream, exclude_match, max_count):
     """Display input starting with a matching pattern."""
     global exit_code
-    match_count = 0
     for line in input_stream:
         if is_match(line, max_count):
             if not exclude_match:
@@ -69,6 +74,7 @@ def count_matches(match_function):
 
 
 def pattern_matcher(pattern, fixed_string, ignore_case):
+    """Return a custom function for pattern matching."""
     regex_flags = re.IGNORECASE if ignore_case else 0
 
     @count_matches
@@ -90,6 +96,7 @@ def pattern_matcher(pattern, fixed_string, ignore_case):
     else:
         match_function = match_fixed_string_match_case
     return match_function
+
 
 def text_file_input(filenames):
     """Generate input from files or standard input."""
