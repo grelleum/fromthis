@@ -56,6 +56,7 @@ def fromthis(is_match, input_stream, exclude_match, max_count):
     global exit_code
     for line in input_stream:
         if is_match(line, max_count):
+            exit_code = 0
             if not exclude_match:
                 yield line
             break
